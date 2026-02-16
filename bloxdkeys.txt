@@ -1,0 +1,147 @@
+// ==UserScript==
+// @name         Bloxd Key Manager
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  A script that allows you to export and import bloxd keybinds
+// @author       Turtl3
+// @match        *://*.bloxd.io/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    const a = [
+        "bloxd-bindings-left","bloxd-bindings-DropItem","bloxd-bindings-OpenInviteLink",
+        "bloxd-bindings-HotBarSlot9","bloxd-bindings-OpenInventory","bloxd-bindings-HotBarSlot6",
+        "bloxd-bindings-HotBarSlot2","bloxd-bindings-HotBarSlot5","bloxd-bindings-HotBarSlot3",
+        "bloxd-bindings-HotBarSlot7","bloxd-bindings-OpenCodeEditor","bloxd-bindings-backward",
+        "bloxd-bindings-primary-fire","bloxd-bindings-OpenTasksAndLeaderboard","bloxd-bindings-HotBarSlot8",
+        "bloxd-bindings-OpenSettings","bloxd-bindings-HotBarSlot1","bloxd-bindings-Zoom",
+        "bloxd-bindings-crouch","bloxd-bindings-alt-fire","bloxd-bindings-right",
+        "bloxd-bindings-mid-fire","bloxd-bindings-OpenLobbyLeaderboard","bloxd-bindings-forward",
+        "bloxd-bindings-HotBarSlot4","bloxd-bindings-SpecialAction2","bloxd-bindings-HotBarSlot10",
+        "bloxd-bindings-OpenCharacterCustomization","bloxd-bindings-HideUi","bloxd-bindings-ReloadGun",
+        "bloxd-bindings-SpecialAction1","bloxd-bindings-jump","bloxd-bindings-OpenShop",
+        "bloxd-bindings-sprint","bloxd-bindings-SwapCameraZoom"
+    ];
+
+    let b = false;
+
+    function c() {
+        const d = {};
+        a.forEach(e => {
+            const f = localStorage.getItem(e);
+            if (f !== null) d[e] = f;
+        });
+        const g = new Blob([JSON.stringify(d)], { type: "application/json" });
+        const h = document.createElement("a");
+        h.href = URL.createObjectURL(g);
+        h.download = "bloxd-bindings.bloxdkeys";
+        h.click();
+        URL.revokeObjectURL(h.href);
+    }
+
+    function d() {
+        document.querySelectorAll(".MiddleScreenPopupBackground").forEach(e => e.remove());
+        const e = document.createElement("div");
+        e.className = "MiddleScreenPopupBackground ShowBackground";
+        e.innerHTML = `
+        <div class="MiddleScreenPopup AnimFadeInScaleUp SmallTextLight PopupNotificationWrapper">
+          <div class="PromptPopupNotification">
+            <div class="PromptPopupNotificationTitle SmallTextBold">Reload Page</div>
+            <div class="PromptPopupNotificationSubtitle SmallTextLight">You will need to reload page to apply your changes</div>
+            <div class="PromptPopupNotificationBody">
+              <div class="NewButton GoldButton PromptPopupNotificationBodyButton PromptPopupNotificationBodyPrimaryButton ReloadConfirm">
+                <div class="ButtonBottomBorder"></div>
+                <div class="ButtonTopBorder"></div>
+                <div class="ButtonBody">Reload</div>
+              </div>
+              <div class="NewButton RedButton PromptPopupNotificationBodyButton ReloadCancel">
+                <div class="ButtonBottomBorder"></div>
+                <div class="ButtonTopBorder"></div>
+                <div class="ButtonBody">Cancel</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+        document.body.appendChild(e);
+        e.querySelector(".ReloadConfirm").onclick = () => location.reload();
+        e.querySelector(".ReloadCancel").onclick = () => e.remove();
+    }
+
+    function e(f, g, h) {
+        if (!f.name.endsWith(".bloxdkeys")) return;
+        const i = new FileReader();
+        i.onload = j => {
+            try {
+                const k = JSON.parse(j.target.result);
+                a.forEach(l => localStorage.removeItem(l));
+                Object.entries(k).forEach(([l, m]) => {
+                    if (a.includes(l)) localStorage.setItem(l, m);
+                });
+                g.textContent = f.name;
+                b = true;
+                h.classList.remove("GreyButton");
+                h.classList.add("BlueButton");
+                h.style.opacity = "1";
+                h.style.cursor = "pointer";
+            } catch {
+                console.error("Invalid bloxdkeys file.");
+            }
+        };
+        i.readAsText(f);
+    }
+
+    function f() {
+        const g = [...document.querySelectorAll('.CheckboxText')].find(h => h.textContent.includes('Crouch Toggle'));
+        if (!g) return;
+        const h = g.closest('.SettingBox');
+        if (!h || document.querySelector('.CustomTexturePackContainer')) return;
+
+        const i = document.createElement('div');
+        i.className = 'SettingBox CustomTexturePackContainer';
+        i.style.cssText = "display:flex;justify-content:center;align-items:center;padding:18px;margin-bottom:10px;";
+        i.innerHTML = `
+        <div class="CustomTextureFolderUpload" style="display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:10px;width:100%;">
+            <input type="file" accept=".bloxdkeys" style="display:none;">
+            <div class="CustomTextureFolderUploadIcon Active" style="font-size:22px;"><i class="fa-solid fa-folder-image"></i></div>
+            <div class="UploadLabel Active">Click to upload or Drag a .bloxdkeys file</div>
+        </div>`;
+
+        const j = document.createElement('div');
+        j.style.cssText = "display:flex;justify-content:center;gap:12px;margin-bottom:12px;";
+        j.innerHTML = `
+        <div class="NewButton BlueButton DownloadBloxdBtn" style="min-width:140px;padding:6px 14px;font-size:14px;">
+            <div class="ButtonBottomBorder"></div>
+            <div class="ButtonTopBorder"></div>
+            <div class="ButtonBody">Download</div>
+        </div>
+        <div class="NewButton GreyButton ApplyBloxdBtn" style="min-width:140px;padding:6px 14px;font-size:14px;opacity:.65;cursor:not-allowed;">
+            <div class="ButtonBottomBorder"></div>
+            <div class="ButtonTopBorder"></div>
+            <div class="ButtonBody">Apply</div>
+        </div>`;
+
+        const k = i.querySelector('.CustomTextureFolderUpload');
+        const l = i.querySelector('input');
+        const m = i.querySelector('.UploadLabel');
+        const n = j.querySelector('.ApplyBloxdBtn');
+
+        k.onclick = () => l.click();
+        l.onchange = o => { if (o.target.files.length) e(o.target.files[0], m, n); };
+        k.ondragover = o => { o.preventDefault(); k.style.opacity = "0.85"; };
+        k.ondragleave = () => k.style.opacity = "1";
+        k.ondrop = o => { o.preventDefault(); k.style.opacity = "1"; if (o.dataTransfer.files.length) e(o.dataTransfer.files[0], m, n); };
+
+        j.querySelector('.DownloadBloxdBtn').onclick = c;
+        n.onclick = () => { if (!b) return; d(); };
+
+        h.parentNode.insertBefore(i, h);
+        h.parentNode.insertBefore(j, h);
+    }
+
+    const g = new MutationObserver(f);
+    g.observe(document.body, { childList: true, subtree: true });
+
+    f();
+})();
